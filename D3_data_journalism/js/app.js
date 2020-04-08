@@ -1,7 +1,3 @@
-// data
-var dataArray = [1, 2, 3];
-var dataCategories = ["one", "two", "three"];
-
 var chartGroup;
 
 var xScale;
@@ -40,20 +36,27 @@ function setCanvas() {
 }
 
 function setAxis(xAxisData, yAxisData) {
-
-    console.log("xAxisData", xAxisData);
-    console.log("yAxisData", yAxisData);
-
-    // scale y to chart height
-    yScale = d3.scaleLinear()
-        .domain([0, d3.max(yAxisData)])
-        .range([canvas.chartHeight, 0]);
-
     // scale x to chart width
-    xScale = d3.scaleBand()
-        .domain(xAxisData)
-        .range([0, canvas.chartWidth])
-        .padding(0.1);
+    xMaxVal = Math.round(d3.max(xAxisData))+1;
+    xMinVal = Math.round(d3.min(xAxisData))-1;
+    console.log("xScale:", xMinVal, xMaxVal, canvas.chartWidth);
+    xScale = d3.scaleLinear()
+        .domain([xMinVal, xMaxVal])
+        .range([0, canvas.chartWidth]);
+    console.log("xScale Test:", 5, xScale(5));
+    console.log("xScale Test:", 10, xScale(10));
+    console.log("xScale Test:", 25, xScale(25));
+    
+        // scale y to chart height
+    yMaxVal = Math.round(d3.max(yAxisData))+1;
+    yMinVal = Math.round(d3.min(yAxisData))-1;
+    console.log("yScale:", yMinVal, yMaxVal, canvas.chartHeight);
+    yScale = d3.scaleLinear()
+        .domain([yMinVal, yMaxVal]) // range of input
+        .range([canvas.chartHeight, 0]);
+    console.log("yScale Test:", 5, yScale(5));
+    console.log("yScale Test:", 10, yScale(10));
+    console.log("yScale Test:", 25, yScale(25));
 
     // create axes
     var yAxis = d3.axisLeft(yScale);
@@ -61,9 +64,8 @@ function setAxis(xAxisData, yAxisData) {
 
     // Add X axis label:
     xAxisYAttr = canvas.chartHeight + margin.top - 10; // top down movement
-    console.log("xAxisYAttr:", xAxisYAttr);
     xAxisXAttr = canvas.chartWidth/2; // left right movement
-    console.log("xAxisXAttr:", xAxisXAttr);
+    console.log("xAxis Title Coordinates:", xAxisXAttr, xAxisYAttr);
 
     chartGroup.append("text")
         .attr("text-anchor", "end")
@@ -73,13 +75,14 @@ function setAxis(xAxisData, yAxisData) {
 
     // Y axis label:
     yAxisXAttr = margin.top - canvas.chartHeight/2; // top down movement
-    console.log("yAxisXAttr:", yAxisXAttr);
+    yAxisYAttr = -margin.left + 20;
+    console.log("yAxis Title Coordinates:", yAxisXAttr, yAxisYAttr);
     chartGroup.append("text")
         .attr("text-anchor", "end")
         .attr("transform", "rotate(-90)")
-        .attr("y", -margin.left + 20)
+        .attr("y", yAxisYAttr)
         .attr("x", yAxisXAttr) // top down movement
-        .text("Lacks Healthcare (%)")
+        .text("Lacks Healthcare (%)");
 
     // set x to the bottom of the chart
     chartGroup.append("g")
@@ -92,17 +95,29 @@ function setAxis(xAxisData, yAxisData) {
 
 }
 
-function createChart(healthData) {
+function createChart(axisData) {
     // append initial circles
+
+    console.log("createChart called:", axisData);
+    radius = 10;
+
     var circlesGroup = chartGroup.selectAll("circle")
-        .data(healthData)
+        .data(axisData)
         .enter()
         .append("circle")
-        .attr("cx", healthData.poverty)
-        .attr("cy", healthData.healthcare)
-        .attr("r", 20)
+        .attr("cx", d => xScale(d.x))
+        .attr("cy", d => yScale(d.y))
+        .attr("r", radius)
         .attr("fill", "pink")
-        .attr("opacity", ".5");
+        .attr("opacity", ".5")
+        .append('text')
+        .text(d => d.abbr);
+        /*
+        .attr('dx',d => xScale(d.x))
+        .attr('dy',d => yScale(d.y + radius / 2.5))
+        .attr('font-size',radius)
+        .attr('class','stateText');
+        */
 }
 
 /*
@@ -118,6 +133,7 @@ d3.csv("data/data.csv").then(function (healthData, err) {
 
     var xAxisData = [];
     var yAxisData = [];
+    var axisData = [];
 
 
     // parse data
@@ -145,11 +161,18 @@ d3.csv("data/data.csv").then(function (healthData, err) {
         data.smokes = +data.smokes;
         yAxisData[2].push(data.smokes);
         */
+
+       var axis = {
+            x:data.poverty,
+            y:data.healthcare,
+            abbr:data.abbr
+        }
+        axisData.push(axis);
         
     });
 
     setAxis(xAxisData, yAxisData);
-    createChart(healthData);
+    createChart(axisData);
 }).catch(function (error) {
     console.log(error);
 });
